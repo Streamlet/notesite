@@ -74,5 +74,7 @@ func main() {
 		break
 	}
 
-	_ = srv.Shutdown()
+	if err := srv.Shutdown(); err != nil {
+		fmt.Printf("Server shutdown: %s\n", err.Error())
+	}
 }

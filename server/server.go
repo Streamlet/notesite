@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/Streamlet/NoteIsSite/global"
 )
@@ -50,11 +51,20 @@ func serve(s *http.Server, l net.Listener) {
 	}()
 }
 
+const shutdownTimeout = 5 * time.Second
+
 func shutdown(s *http.Server) error {
-	return s.Shutdown(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	if err := s.Shutdown(ctx); err != nil {
+		_ = s.Close()
+		return err
+	}
+	return nil
 }
 
-func (s portServer) Serve() error {
+func (s *portServer) Serve() error {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
 	if err != nil {
 		return err
@@ -63,11 +73,11 @@ func (s portServer) Serve() error {
 	return nil
 }
 
-func (s portServer) Shutdown() error {
+func (s *portServer) Shutdown() error {
 	return shutdown(&s.Server)
 }
 
-func (s sockServer) Serve() error {
+func (s *sockServer) Serve() error {
 	_ = os.Remove(s.sock)
 	l, err := net.Listen("unix", s.sock)
 	if err != nil {
@@ -77,7 +87,7 @@ func (s sockServer) Serve() error {
 	return nil
 }
 
-func (s sockServer) Shutdown() error {
+func (s *sockServer) Shutdown() error {
 	err := shutdown(&s.Server)
 	_ = os.Remove(s.sock)
 	return err
