@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Streamlet/NoteIsSite/config"
 	"github.com/Streamlet/NoteIsSite/note/translator"
@@ -25,16 +26,35 @@ type notesRouter struct {
 
 	uriNodeMap  map[string]*node
 	watcher     *watcher
-	lock        sync.RWMutex // guards uriNodeMap and watcher
+	lock        sync.RWMutex // guards uriNodeMap
 	rebuildLock sync.Mutex   // serializes rebuilds
 
 	templateExecutor template.Executor
+	templateFiles    map[string]bool
+	events           chan fsEvent
+	eventOverflow    chan struct{}
 }
 
-type routerSnapshot struct {
-	uriNodeMap map[string]*node
-	watcher    *watcher
+type fsEventKind int
+
+const (
+	fsEventCreate fsEventKind = iota
+	fsEventRemove
+	fsEventWrite
+)
+
+type fsEvent struct {
+	path string
+	kind fsEventKind
 }
+
+type eventAction int
+
+const (
+	eventIgnore eventAction = iota
+	eventReloadTemplates
+	eventRebuild
+)
 
 type node struct {
 	isNote           bool
@@ -51,21 +71,64 @@ type node struct {
 
 func NewRouter(noteRoot string, templateRoot string) (Router, error) {
 	nr := new(notesRouter)
-	nr.noteRoot = noteRoot
-	nr.templateRoot = templateRoot
 
 	var err error
-	nr.templateExecutor, err = template.NewExecutor(templateRoot)
+	nr.noteRoot, err = filepath.Abs(noteRoot)
+	if err != nil {
+		return nil, err
+	}
+	nr.templateRoot, err = filepath.Abs(templateRoot)
 	if err != nil {
 		return nil, err
 	}
 
-	err = nr.rebuild()
+	nr.templateExecutor, err = template.NewExecutor(nr.templateRoot)
 	if err != nil {
 		return nil, err
 	}
+	nr.templateFiles = nr.collectTemplateFiles()
+	nr.events = make(chan fsEvent, 1024)
+	nr.eventOverflow = make(chan struct{}, 1)
+
+	nr.watcher, err = newWatcher(nr.templateRoot, nr.noteRoot)
+	if err != nil {
+		return nil, err
+	}
+	if err = nr.watcher.addDirs(nr.templateRoot); err != nil {
+		_ = nr.watcher.close()
+		return nil, err
+	}
+	if err = nr.watcher.addDirs(nr.noteRoot); err != nil {
+		_ = nr.watcher.close()
+		return nil, err
+	}
+
+	nr.watcher.watch(nr)
+	if err = nr.rebuild(); err != nil {
+		_ = nr.watcher.close()
+		return nil, err
+	}
+
+	go nr.eventLoop()
 
 	return nr, nil
+}
+
+func (nr *notesRouter) collectTemplateFiles() map[string]bool {
+	c := config.GetSiteConfig().Template
+	files := make(map[string]bool)
+	for _, name := range []string{
+		c.IndexTemplate,
+		c.CategoryTemplate,
+		c.ContentTemplate,
+		c.ErrorPage404,
+		c.ErrorPage500,
+	} {
+		if name != "" {
+			files[filepath.Join(nr.templateRoot, name)] = true
+		}
+	}
+	return files
 }
 
 func (nr *notesRouter) rebuild() error {
@@ -73,56 +136,28 @@ func (nr *notesRouter) rebuild() error {
 	nr.rebuildLock.Lock()
 	defer nr.rebuildLock.Unlock()
 
-	snapshot, err := nr.buildSnapshot()
+	uriNodeMap, err := nr.buildSnapshot()
 	if err != nil {
 		return err
 	}
 
 	nr.lock.Lock()
-	oldWatcher := nr.watcher
-	nr.uriNodeMap = snapshot.uriNodeMap
-	nr.watcher = snapshot.watcher
+	nr.uriNodeMap = uriNodeMap
 	nr.lock.Unlock()
-
-	if oldWatcher != nil {
-		_ = oldWatcher.close()
-	}
 	return nil
 }
 
-func (nr *notesRouter) buildSnapshot() (snapshot *routerSnapshot, err error) {
-	w, err := newWatcher()
-	if err != nil {
-		return nil, err
-	}
-	// Start the watcher early and close it below if the build fails.
-	w.watch(nr)
-	defer func() {
-		if err != nil {
-			_ = w.close()
-		}
-	}()
-
-	snapshot = &routerSnapshot{
-		uriNodeMap: make(map[string]*node),
-		watcher:    w,
-	}
+func (nr *notesRouter) buildSnapshot() (map[string]*node, error) {
+	uriNodeMap := make(map[string]*node)
 	for _, dir := range config.GetSiteConfig().Template.StaticDirs {
-		if err = nr.buildTree(snapshot, "/", filepath.Join(nr.templateRoot, dir), false, nil, nil, nil); err != nil {
+		if err := nr.buildTree(uriNodeMap, "/", filepath.Join(nr.templateRoot, dir), false, nil, nil, nil); err != nil {
 			return nil, err
 		}
 	}
-	if err = w.addDirs(nr.templateRoot); err != nil {
+	if err := nr.buildTree(uriNodeMap, "/", nr.noteRoot, true, config.GetSiteConfig().Note.NoteFileRegExp, nil, nil); err != nil {
 		return nil, err
 	}
-	if err = nr.buildTree(snapshot, "/", nr.noteRoot, true, config.GetSiteConfig().Note.NoteFileRegExp, nil, nil); err != nil {
-		return nil, err
-	}
-	if err = w.addDirs(nr.noteRoot); err != nil {
-		return nil, err
-	}
-
-	return snapshot, nil
+	return uriNodeMap, nil
 }
 
 func (nr *notesRouter) Route(uri string) (content []byte, mimeType string, err error) {
@@ -157,7 +192,7 @@ func sameFileIn(infos []os.FileInfo, target os.FileInfo) bool {
 	return false
 }
 
-func (nr *notesRouter) buildTree(snapshot *routerSnapshot, baseUri string, dir string, isNote bool, pattern *regexp.Regexp, parent *node, ancestors []os.FileInfo) error {
+func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, dir string, isNote bool, pattern *regexp.Regexp, parent *node, ancestors []os.FileInfo) error {
 	dirInfo, err := os.Stat(dir)
 	if err != nil {
 		return err
@@ -185,7 +220,7 @@ func (nr *notesRouter) buildTree(snapshot *routerSnapshot, baseUri string, dir s
 			}
 		}
 		parent.subItems = make([]*node, 0)
-		snapshot.uriNodeMap[parent.absoluteUri] = parent
+		uriNodeMap[parent.absoluteUri] = parent
 	}
 	for _, f := range files {
 		self := new(node)
@@ -236,10 +271,10 @@ func (nr *notesRouter) buildTree(snapshot *routerSnapshot, baseUri string, dir s
 			}
 			self.absoluteUri = baseUri + strings.ToLower(uriName) + "/"
 			if !(isNote && !subIsNote) {
-				snapshot.uriNodeMap[self.absoluteUri] = self
+				uriNodeMap[self.absoluteUri] = self
 				parent.subItems = append(parent.subItems, self)
 			}
-			if err := nr.buildTree(snapshot, self.absoluteUri, self.absolutePath, subIsNote, patternForChildren, self, ancestors); err != nil {
+			if err := nr.buildTree(uriNodeMap, self.absoluteUri, self.absolutePath, subIsNote, patternForChildren, self, ancestors); err != nil {
 				return err
 			}
 		} else {
@@ -267,36 +302,131 @@ func (nr *notesRouter) buildTree(snapshot *routerSnapshot, baseUri string, dir s
 				parent.subItems = append(parent.subItems, self)
 			}
 			self.absoluteUri = baseUri + strings.ToLower(uriName)
-			snapshot.uriNodeMap[self.absoluteUri] = self
+			uriNodeMap[self.absoluteUri] = self
 		}
 	}
 	return nil
 }
 
 func (nr *notesRouter) FileCreated(path string) {
-	nr.fsNotify(path)
+	nr.enqueue(path, fsEventCreate)
 }
 
 func (nr *notesRouter) FileRemoved(path string) {
-	nr.fsNotify(path)
+	nr.enqueue(path, fsEventRemove)
 }
 
 func (nr *notesRouter) FileChanged(path string) {
-	nr.fsNotify(path)
+	nr.enqueue(path, fsEventWrite)
 }
 
-func (nr *notesRouter) fsNotify(path string) {
-	basename := filepath.Base(path)
-	parentPath := strings.TrimSuffix(path, string(filepath.Separator)+basename)
-	if !strings.HasPrefix(path, filepath.FromSlash(nr.noteRoot)) && parentPath == filepath.FromSlash(nr.templateRoot) {
-		if err := nr.templateExecutor.Update(nr.templateRoot); err != nil {
-			log.Println(err.Error())
-		}
-	} else {
-		if err := nr.rebuild(); err != nil {
-			log.Printf("failed to rebuild site, keeping previous snapshot: %s", err.Error())
+func (nr *notesRouter) enqueue(path string, kind fsEventKind) {
+	select {
+	case nr.events <- fsEvent{path: path, kind: kind}:
+	default:
+		// Never block the fsnotify goroutine; request a full rebuild instead.
+		select {
+		case nr.eventOverflow <- struct{}{}:
+		default:
 		}
 	}
+}
+
+const eventDebounce = 300 * time.Millisecond
+
+// eventLoop coalesces filesystem events and applies at most one template reload
+// and one rebuild per quiet period.
+func (nr *notesRouter) eventLoop() {
+	var templateDirty, treeDirty bool
+	var timer *time.Timer
+	var timerC <-chan time.Time
+
+	reset := func() {
+		if timer == nil {
+			timer = time.NewTimer(eventDebounce)
+			timerC = timer.C
+			return
+		}
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+		timer.Reset(eventDebounce)
+		timerC = timer.C
+	}
+
+	for {
+		select {
+		case ev := <-nr.events:
+			switch nr.classifyEvent(ev) {
+			case eventReloadTemplates:
+				templateDirty = true
+			case eventRebuild:
+				treeDirty = true
+			default:
+				continue
+			}
+			reset()
+		case <-nr.eventOverflow:
+			templateDirty = true
+			treeDirty = true
+			reset()
+		case <-timerC:
+			timer = nil
+			timerC = nil
+			if templateDirty {
+				templateDirty = false
+				if err := nr.templateExecutor.Update(nr.templateRoot); err != nil {
+					log.Printf("failed to reload templates, keeping previous templates: %s", err.Error())
+				}
+			}
+			if treeDirty {
+				treeDirty = false
+				if err := nr.rebuild(); err != nil {
+					log.Printf("failed to rebuild site, keeping previous snapshot: %s", err.Error())
+				}
+			}
+		}
+	}
+}
+
+func (nr *notesRouter) classifyEvent(ev fsEvent) eventAction {
+	path := filepath.Clean(ev.path)
+	if nr.templateFiles[path] {
+		return eventReloadTemplates
+	}
+	if _, ok := pathWithin(nr.noteRoot, path); ok {
+		switch ev.kind {
+		case fsEventCreate, fsEventRemove:
+			return eventRebuild
+		case fsEventWrite:
+			// Note content is read on every request; only config files affect the tree.
+			conf := config.GetSiteConfig().Note
+			name := filepath.Base(path)
+			if name == filepath.Base(conf.CategoryConfigFile) || name == filepath.Base(conf.ResourceConfigFile) {
+				return eventRebuild
+			}
+		}
+		return eventIgnore
+	}
+	// Static files are read on every request; only structural changes matter.
+	if _, ok := pathWithin(nr.templateRoot, path); ok && ev.kind != fsEventWrite {
+		return eventRebuild
+	}
+	return eventIgnore
+}
+
+func pathWithin(root string, path string) (string, bool) {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return "", false
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", false
+	}
+	return rel, true
 }
 
 func (n *node) toTemplateItem(parent *template.BasicItem, find *node) (itemForThis *template.BasicItem, itemForFind *template.BasicItem) {
