@@ -3,6 +3,8 @@ package template
 import (
 	"bytes"
 	"os"
+	"path/filepath"
+	"regexp"
 	"sync"
 	"text/template"
 	"time"
@@ -95,6 +97,52 @@ func NewExecutor(templateRoot string) (Executor, error) {
 	return td, nil
 }
 
+var ssiIncludePattern = regexp.MustCompile(`<!--#include\s+file\s*=\s*"([^"]+)"\s*-->`)
+
+// readFileWithSsi reads a template and expands
+// <!--#include file="..." --> directives. Include paths are resolved
+// relative to the file containing the directive. A seen set stops cycles and
+// repeated includes; their directives are removed.
+func readFileWithSsi(root string, name string, seen map[string]bool) ([]byte, error) {
+	if name == "" {
+		return nil, nil
+	}
+	if seen == nil {
+		seen = make(map[string]bool)
+	}
+	path := filepath.Clean(filepath.Join(root, name))
+	seen[path] = true
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var out bytes.Buffer
+	for {
+		match := ssiIncludePattern.FindSubmatchIndex(content)
+		if match == nil {
+			out.Write(content)
+			break
+		}
+
+		out.Write(content[:match[0]])
+		includeRoot := filepath.Dir(path)
+		includeName := string(content[match[2]:match[3]])
+		includePath := filepath.Clean(filepath.Join(includeRoot, includeName))
+		if !seen[includePath] {
+			seen[includePath] = true
+			included, err := readFileWithSsi(includeRoot, includeName, seen)
+			if err != nil {
+				return nil, err
+			}
+			out.Write(included)
+		}
+		content = content[match[1]:]
+	}
+	return out.Bytes(), nil
+}
+
 type templateData struct {
 	lock             sync.RWMutex
 	indexTemplate    string
@@ -106,20 +154,27 @@ type templateData struct {
 
 func (td *templateData) Update(templateRoot string) error {
 	c := config.GetSiteConfig().Template
-	index, err := os.ReadFile(templateRoot + "/" + c.IndexTemplate)
+
+	index, err := readFileWithSsi(templateRoot, c.IndexTemplate, nil)
 	if err != nil {
 		return err
 	}
-	category, err := os.ReadFile(templateRoot + "/" + c.CategoryTemplate)
+	category, err := readFileWithSsi(templateRoot, c.CategoryTemplate, nil)
 	if err != nil {
 		return err
 	}
-	content, err := os.ReadFile(templateRoot + "/" + c.ContentTemplate)
+	content, err := readFileWithSsi(templateRoot, c.ContentTemplate, nil)
 	if err != nil {
 		return err
 	}
-	err404, _ := os.ReadFile(templateRoot + "/" + c.ErrorPage404)
-	err500, _ := os.ReadFile(templateRoot + "/" + c.ErrorPage500)
+	err404, err := readFileWithSsi(templateRoot, c.ErrorPage404, nil)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	err500, err := readFileWithSsi(templateRoot, c.ErrorPage500, nil)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
 
 	defer td.lock.Unlock()
 	td.lock.Lock()

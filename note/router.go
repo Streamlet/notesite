@@ -31,6 +31,7 @@ type notesRouter struct {
 
 	templateExecutor template.Executor
 	templateFiles    map[string]bool
+	staticDirs       []string
 	events           chan fsEvent
 	eventOverflow    chan struct{}
 }
@@ -87,6 +88,7 @@ func NewRouter(noteRoot string, templateRoot string) (Router, error) {
 		return nil, err
 	}
 	nr.templateFiles = nr.collectTemplateFiles()
+	nr.staticDirs = nr.collectStaticDirs()
 	nr.events = make(chan fsEvent, 1024)
 	nr.eventOverflow = make(chan struct{}, 1)
 
@@ -129,6 +131,15 @@ func (nr *notesRouter) collectTemplateFiles() map[string]bool {
 		}
 	}
 	return files
+}
+
+func (nr *notesRouter) collectStaticDirs() []string {
+	staticDirs := config.GetSiteConfig().Template.StaticDirs
+	dirs := make([]string, 0, len(staticDirs))
+	for _, dir := range staticDirs {
+		dirs = append(dirs, filepath.Join(nr.templateRoot, dir))
+	}
+	return dirs
 }
 
 func (nr *notesRouter) rebuild() error {
@@ -412,11 +423,26 @@ func (nr *notesRouter) classifyEvent(ev fsEvent) eventAction {
 		}
 		return eventIgnore
 	}
-	// Static files are read on every request; only structural changes matter.
-	if _, ok := pathWithin(nr.templateRoot, path); ok && ev.kind != fsEventWrite {
-		return eventRebuild
+	if _, ok := pathWithin(nr.templateRoot, path); ok {
+		if !nr.isStaticPath(path) {
+			// Partials and other template assets are reloaded by the executor.
+			return eventReloadTemplates
+		}
+		// Static files are read on every request; only structural changes matter.
+		if ev.kind != fsEventWrite {
+			return eventRebuild
+		}
 	}
 	return eventIgnore
+}
+
+func (nr *notesRouter) isStaticPath(path string) bool {
+	for _, dir := range nr.staticDirs {
+		if _, ok := pathWithin(dir, path); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func pathWithin(root string, path string) (string, bool) {
