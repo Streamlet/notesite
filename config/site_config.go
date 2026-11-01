@@ -11,7 +11,7 @@ import (
 type SiteConfig struct {
 	Server   ServerConfig   `toml:"server"`
 	Template TemplateConfig `toml:"template"`
-	Note     NoteConfig     `tomp:"note"`
+	Note     NoteConfig     `toml:"note"`
 }
 
 type ServerConfig struct {
