@@ -64,6 +64,7 @@ type node struct {
 	absoluteUri      string
 	name             string
 	parent           *node
+	basicItem        *template.BasicItem
 
 	// dir node only
 	subItems []*node
@@ -167,6 +168,10 @@ func (nr *notesRouter) buildSnapshot() (map[string]*node, error) {
 	}
 	if err := nr.buildTree(uriNodeMap, "/", nr.noteRoot, true, config.GetSiteConfig().Note.NoteFileRegExp, nil, nil); err != nil {
 		return nil, err
+	}
+	// Build the template view once per snapshot; requests clone only the active path.
+	if root, ok := uriNodeMap["/"]; ok {
+		root.buildBasicItems(nil)
 	}
 	return uriNodeMap, nil
 }
@@ -456,42 +461,78 @@ func pathWithin(root string, path string) (string, bool) {
 	return rel, true
 }
 
-func (n *node) toTemplateItem(parent *template.BasicItem, find *node) (itemForThis *template.BasicItem, itemForFind *template.BasicItem) {
-	itemForThis = new(template.BasicItem)
-	itemForThis.Parent = parent
-	itemForThis.Uri = n.absoluteUri
-	itemForThis.Name = n.name
+func (n *node) buildBasicItems(parent *template.BasicItem) {
+	item := &template.BasicItem{
+		Uri:    n.absoluteUri,
+		Name:   n.name,
+		Parent: parent,
+	}
+	n.basicItem = item
 	if n.subItems != nil {
-		itemForThis.Children = make([]*template.BasicItem, 0)
-		for _, c := range n.subItems {
-			item, found := c.toTemplateItem(itemForThis, find)
-			itemForThis.Children = append(itemForThis.Children, item)
-			if found != nil {
-				itemForFind = found
-			}
+		item.Children = make([]*template.BasicItem, 0, len(n.subItems))
+		for _, child := range n.subItems {
+			child.buildBasicItems(item)
+			item.Children = append(item.Children, child.basicItem)
 		}
 	}
-	if n == find {
-		util.Assert(itemForFind == nil, "data error")
-		itemForFind = itemForThis
+}
+
+// requestBasicItem clones the active path so IsAncestor can be set without
+// mutating the shared tree.
+func (n *node) requestBasicItem() *template.BasicItem {
+	util.Assert(n.basicItem != nil, "basic item was not built")
+
+	chain := make([]*template.BasicItem, 0, 8)
+	for item := n.basicItem; item != nil; item = item.Parent {
+		chain = append(chain, item)
 	}
-	return
+	for i, j := 0, len(chain)-1; i < j; i, j = i+1, j-1 {
+		chain[i], chain[j] = chain[j], chain[i]
+	}
+
+	var parent *template.BasicItem
+	var current *template.BasicItem
+	childIndex := -1
+	for i, shared := range chain {
+		clone := *shared
+		clone.IsAncestor = true
+		clone.Parent = parent
+
+		if i+1 < len(chain) {
+			children := make([]*template.BasicItem, len(shared.Children))
+			copy(children, shared.Children)
+			clone.Children = children
+
+			nextIndex := -1
+			for j, child := range children {
+				if child == chain[i+1] {
+					nextIndex = j
+					break
+				}
+			}
+			if parent != nil && childIndex >= 0 {
+				parent.Children[childIndex] = &clone
+			}
+			parent = &clone
+			childIndex = nextIndex
+		} else {
+			clone.Children = shared.Children
+			if parent != nil && childIndex >= 0 {
+				parent.Children[childIndex] = &clone
+			}
+			parent = &clone
+		}
+		current = &clone
+	}
+	return current
 }
 
 func (n *node) GetContent() ([]byte, error) {
 
 	var pageData *template.PageData
 	if n.isNote {
-		root := n
-		for root.parent != nil {
-			root = root.parent
-		}
-		_, item := root.toTemplateItem(nil, n)
-		for p := item; p != nil; p = p.Parent {
-			p.IsAncestor = true
-		}
 		pageData = new(template.PageData)
-		pageData.BasicItem = item
+		pageData.BasicItem = n.requestBasicItem()
 	}
 	if n.subItems == nil {
 		var content []byte
