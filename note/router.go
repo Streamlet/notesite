@@ -108,14 +108,14 @@ func (nr *notesRouter) buildSnapshot() (snapshot *routerSnapshot, err error) {
 		watcher:    w,
 	}
 	for _, dir := range config.GetSiteConfig().Template.StaticDirs {
-		if err = nr.buildTree(snapshot, "/", filepath.Join(nr.templateRoot, dir), false, nil, nil); err != nil {
+		if err = nr.buildTree(snapshot, "/", filepath.Join(nr.templateRoot, dir), false, nil, nil, nil); err != nil {
 			return nil, err
 		}
 	}
 	if err = w.addDirs(nr.templateRoot); err != nil {
 		return nil, err
 	}
-	if err = nr.buildTree(snapshot, "/", nr.noteRoot, true, config.GetSiteConfig().Note.NoteFileRegExp, nil); err != nil {
+	if err = nr.buildTree(snapshot, "/", nr.noteRoot, true, config.GetSiteConfig().Note.NoteFileRegExp, nil, nil); err != nil {
 		return nil, err
 	}
 	if err = w.addDirs(nr.noteRoot); err != nil {
@@ -148,7 +148,23 @@ func (nr *notesRouter) Route(uri string) (content []byte, mimeType string, err e
 	return b, mimeType, nil
 }
 
-func (nr *notesRouter) buildTree(snapshot *routerSnapshot, baseUri string, dir string, isNote bool, pattern *regexp.Regexp, parent *node) error {
+func sameFileIn(infos []os.FileInfo, target os.FileInfo) bool {
+	for _, info := range infos {
+		if os.SameFile(info, target) {
+			return true
+		}
+	}
+	return false
+}
+
+func (nr *notesRouter) buildTree(snapshot *routerSnapshot, baseUri string, dir string, isNote bool, pattern *regexp.Regexp, parent *node, ancestors []os.FileInfo) error {
+	dirInfo, err := os.Stat(dir)
+	if err != nil {
+		return err
+	}
+	// Track the real directory identity along the current path to detect symlink loops.
+	ancestors = append(ancestors, dirInfo)
+
 	files, err := os.ReadDir(dir)
 	if err != nil {
 		return err
@@ -178,8 +194,13 @@ func (nr *notesRouter) buildTree(snapshot *routerSnapshot, baseUri string, dir s
 		self.absolutePath = filepath.Join(dir, f.Name())
 		self.name = f.Name()
 		self.parent = parent
-		fi, err := f.Info()
-		if f.IsDir() || (err == nil && (fi.Mode()&os.ModeSymlink) != 0) {
+		// os.Stat follows symlinks, so dir/file is decided by the target's type.
+		fi, err := os.Stat(self.absolutePath)
+		if err != nil {
+			log.Printf("skip %s: %s", self.absolutePath, err.Error())
+			continue
+		}
+		if fi.IsDir() {
 			self.subItems = make([]*node, 0)
 			subIsNote := isNote
 			uriName := self.name
@@ -209,12 +230,16 @@ func (nr *notesRouter) buildTree(snapshot *routerSnapshot, baseUri string, dir s
 					continue
 				}
 			}
+			if sameFileIn(ancestors, fi) {
+				log.Printf("skip symlink loop: %s", self.absolutePath)
+				continue
+			}
 			self.absoluteUri = baseUri + strings.ToLower(uriName) + "/"
 			if !(isNote && !subIsNote) {
 				snapshot.uriNodeMap[self.absoluteUri] = self
 				parent.subItems = append(parent.subItems, self)
 			}
-			if err := nr.buildTree(snapshot, self.absoluteUri, self.absolutePath, subIsNote, patternForChildren, self); err != nil {
+			if err := nr.buildTree(snapshot, self.absoluteUri, self.absolutePath, subIsNote, patternForChildren, self, ancestors); err != nil {
 				return err
 			}
 		} else {
