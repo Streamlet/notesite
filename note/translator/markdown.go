@@ -15,6 +15,24 @@ import (
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
 )
 
+var markdownRenderer = goldmark.New(
+	goldmark.WithExtensions(
+		extension.GFM,
+		highlighting.NewHighlighting(
+			highlighting.WithStyle("vs"),
+			highlighting.WithFormatOptions(
+				chromahtml.WithLineNumbers(true),
+			),
+		),
+	),
+)
+
+var (
+	yamlHeaderPattern = regexp.MustCompile("^---\\n((?:.*\\n)*?)---\\n")
+	tomlHeaderPattern = regexp.MustCompile("^\\+\\+\\+\\n((?:.*\\n)*?)\\+\\+\\+\\n")
+	jsonHeaderPattern = regexp.MustCompile("^({(?:.*\\n)*?})\\n")
+)
+
 type markdownTranslator struct {
 	defaultTranslator
 }
@@ -33,23 +51,11 @@ func (t markdownTranslator) Translate() ([]byte, error) {
 
 	content = parseHugoHeader(content)
 
-	md := goldmark.New(
-		goldmark.WithExtensions(
-			extension.GFM,
-			highlighting.NewHighlighting(
-				highlighting.WithStyle("vs"),
-				highlighting.WithFormatOptions(
-					chromahtml.WithLineNumbers(true),
-				),
-			)),
-	)
-
 	var buffer bytes.Buffer
-	if err := md.Convert(content, &buffer); err != nil {
+	if err := markdownRenderer.Convert(content, &buffer); err != nil {
 		return nil, err
 	}
-	htmlContent := buffer.Bytes()
-	return htmlContent, nil
+	return buffer.Bytes(), nil
 }
 
 type hugoHeader struct {
@@ -59,19 +65,19 @@ type hugoHeader struct {
 
 func parseHugoHeader(content []byte) []byte {
 	var header *hugoHeader
-	if matches := regexp.MustCompile("^---\\n((?:.*\\n)*?)---\\n").FindAllSubmatch(content, -1); matches != nil {
+	if matches := yamlHeaderPattern.FindAllSubmatch(content, -1); matches != nil {
 		content = bytes.TrimPrefix(content, matches[0][0])
 		var h hugoHeader
 		if err := yaml.Unmarshal(matches[0][1], &h); err == nil {
 			header = &h
 		}
-	} else if matches := regexp.MustCompile("^\\+\\+\\+\\n((?:.*\\n)*?)\\+\\+\\+\\n").FindAllSubmatch(content, -1); matches != nil {
+	} else if matches := tomlHeaderPattern.FindAllSubmatch(content, -1); matches != nil {
 		content = bytes.TrimPrefix(content, matches[0][0])
 		var h hugoHeader
 		if _, err := toml.Decode(string(matches[0][1]), &h); err == nil {
 			header = &h
 		}
-	} else if matches := regexp.MustCompile("^({(?:.*\\n)*?})\\n").FindAllSubmatch(content, -1); matches != nil {
+	} else if matches := jsonHeaderPattern.FindAllSubmatch(content, -1); matches != nil {
 		content = bytes.TrimPrefix(content, matches[0][0])
 		var h hugoHeader
 		if err := json.Unmarshal(matches[0][1], &h); err == nil {

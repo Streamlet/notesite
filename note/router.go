@@ -497,8 +497,7 @@ func (n *node) GetContent() ([]byte, error) {
 		var content []byte
 		var err error
 		if n.isNote {
-			t := translator.New(n.absolutePath)
-			content, err = t.Translate()
+			content, err = translator.TranslateCached(n.absolutePath)
 		} else {
 			content, err = os.ReadFile(n.absolutePath)
 		}
@@ -518,8 +517,7 @@ func (n *node) GetContent() ([]byte, error) {
 	} else {
 		util.Assert(n.isNote, "check code")
 		if n.index != "" {
-			t := translator.New(filepath.Join(n.absolutePath, n.index))
-			content, err := t.Translate()
+			content, err := translator.TranslateCached(filepath.Join(n.absolutePath, n.index))
 			if err != nil {
 				if os.IsNotExist(err) {
 					return n.templateExecutor.Get404(), err

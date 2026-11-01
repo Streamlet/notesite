@@ -145,9 +145,9 @@ func readFileWithSsi(root string, name string, seen map[string]bool) ([]byte, er
 
 type templateData struct {
 	lock             sync.RWMutex
-	indexTemplate    string
-	categoryTemplate string
-	contentTemplate  string
+	indexTemplate    *template.Template
+	categoryTemplate *template.Template
+	contentTemplate  *template.Template
 	err404           []byte
 	err500           []byte
 }
@@ -176,12 +176,25 @@ func (td *templateData) Update(templateRoot string) error {
 		return err
 	}
 
+	indexTemplate, err := template.New("").Parse(string(index))
+	if err != nil {
+		return err
+	}
+	categoryTemplate, err := template.New("").Parse(string(category))
+	if err != nil {
+		return err
+	}
+	contentTemplate, err := template.New("").Parse(string(content))
+	if err != nil {
+		return err
+	}
+
 	defer td.lock.Unlock()
 	td.lock.Lock()
 
-	td.indexTemplate = string(index)
-	td.categoryTemplate = string(category)
-	td.contentTemplate = string(content)
+	td.indexTemplate = indexTemplate
+	td.categoryTemplate = categoryTemplate
+	td.contentTemplate = contentTemplate
 	td.err404 = err404
 	td.err500 = err500
 
@@ -209,20 +222,12 @@ func (td *templateData) GetContent(data PageData) ([]byte, error) {
 	return td.execute(td.contentTemplate, data)
 }
 
-func (td *templateData) execute(tmpl string, data interface{}) ([]byte, error) {
-	tt := template.New("")
-	_, err := tt.Parse(tmpl)
-	if err != nil {
+func (td *templateData) execute(tmpl *template.Template, data interface{}) ([]byte, error) {
+	var buffer bytes.Buffer
+	if err := tmpl.Execute(&buffer, data); err != nil {
 		return td.err500, err
 	}
-
-	var buffer []byte
-	w := bytes.NewBuffer(buffer)
-	err = tt.Execute(w, data)
-	if err != nil {
-		return td.err500, err
-	}
-	return w.Bytes(), nil
+	return buffer.Bytes(), nil
 }
 
 func (td *templateData) Get404() []byte {
