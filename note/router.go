@@ -23,11 +23,17 @@ type notesRouter struct {
 	noteRoot     string
 	templateRoot string
 
-	uriNodeMap map[string]*node
-	lock       sync.RWMutex
-	watcher    *watcher
+	uriNodeMap  map[string]*node
+	watcher     *watcher
+	lock        sync.RWMutex // guards uriNodeMap and watcher
+	rebuildLock sync.Mutex   // serializes rebuilds
 
 	templateExecutor template.Executor
+}
+
+type routerSnapshot struct {
+	uriNodeMap map[string]*node
+	watcher    *watcher
 }
 
 type node struct {
@@ -63,38 +69,60 @@ func NewRouter(noteRoot string, templateRoot string) (Router, error) {
 }
 
 func (nr *notesRouter) rebuild() error {
-	defer nr.lock.Unlock()
-	nr.lock.Lock()
+	// Serialize rebuilds, so a slower older snapshot can never replace a newer one.
+	nr.rebuildLock.Lock()
+	defer nr.rebuildLock.Unlock()
 
-	if nr.watcher != nil {
-		_ = nr.watcher.close()
-		nr.watcher = nil
-	}
-	var err error
-	nr.watcher, err = newWatcher()
+	snapshot, err := nr.buildSnapshot()
 	if err != nil {
 		return err
 	}
 
-	nr.uriNodeMap = make(map[string]*node)
+	nr.lock.Lock()
+	oldWatcher := nr.watcher
+	nr.uriNodeMap = snapshot.uriNodeMap
+	nr.watcher = snapshot.watcher
+	nr.lock.Unlock()
+
+	if oldWatcher != nil {
+		_ = oldWatcher.close()
+	}
+	return nil
+}
+
+func (nr *notesRouter) buildSnapshot() (snapshot *routerSnapshot, err error) {
+	w, err := newWatcher()
+	if err != nil {
+		return nil, err
+	}
+	// Start the watcher early and close it below if the build fails.
+	w.watch(nr)
+	defer func() {
+		if err != nil {
+			_ = w.close()
+		}
+	}()
+
+	snapshot = &routerSnapshot{
+		uriNodeMap: make(map[string]*node),
+		watcher:    w,
+	}
 	for _, dir := range config.GetSiteConfig().Template.StaticDirs {
-		if err := nr.buildTree("/", filepath.Join(nr.templateRoot, dir), false, nil, nil); err != nil {
-			return err
+		if err = nr.buildTree(snapshot, "/", filepath.Join(nr.templateRoot, dir), false, nil, nil); err != nil {
+			return nil, err
 		}
 	}
-	if err := nr.watcher.addDirs(nr.templateRoot); err != nil {
-		return err
+	if err = w.addDirs(nr.templateRoot); err != nil {
+		return nil, err
 	}
-	if err := nr.buildTree("/", nr.noteRoot, true, config.GetSiteConfig().Note.NoteFileRegExp, nil); err != nil {
-		return err
+	if err = nr.buildTree(snapshot, "/", nr.noteRoot, true, config.GetSiteConfig().Note.NoteFileRegExp, nil); err != nil {
+		return nil, err
 	}
-	if err := nr.watcher.addDirs(nr.noteRoot); err != nil {
-		return err
+	if err = w.addDirs(nr.noteRoot); err != nil {
+		return nil, err
 	}
 
-	nr.watcher.watch(nr)
-
-	return nil
+	return snapshot, nil
 }
 
 func (nr *notesRouter) Route(uri string) (content []byte, mimeType string, err error) {
@@ -120,7 +148,7 @@ func (nr *notesRouter) Route(uri string) (content []byte, mimeType string, err e
 	return b, mimeType, nil
 }
 
-func (nr *notesRouter) buildTree(baseUri string, dir string, isNote bool, pattern *regexp.Regexp, parent *node) error {
+func (nr *notesRouter) buildTree(snapshot *routerSnapshot, baseUri string, dir string, isNote bool, pattern *regexp.Regexp, parent *node) error {
 	files, err := os.ReadDir(dir)
 	if err != nil {
 		return err
@@ -141,7 +169,7 @@ func (nr *notesRouter) buildTree(baseUri string, dir string, isNote bool, patter
 			}
 		}
 		parent.subItems = make([]*node, 0)
-		nr.uriNodeMap[parent.absoluteUri] = parent
+		snapshot.uriNodeMap[parent.absoluteUri] = parent
 	}
 	for _, f := range files {
 		self := new(node)
@@ -183,10 +211,10 @@ func (nr *notesRouter) buildTree(baseUri string, dir string, isNote bool, patter
 			}
 			self.absoluteUri = baseUri + strings.ToLower(uriName) + "/"
 			if !(isNote && !subIsNote) {
-				nr.uriNodeMap[self.absoluteUri] = self
+				snapshot.uriNodeMap[self.absoluteUri] = self
 				parent.subItems = append(parent.subItems, self)
 			}
-			if err := nr.buildTree(self.absoluteUri, self.absolutePath, subIsNote, patternForChildren, self); err != nil {
+			if err := nr.buildTree(snapshot, self.absoluteUri, self.absolutePath, subIsNote, patternForChildren, self); err != nil {
 				return err
 			}
 		} else {
@@ -214,7 +242,7 @@ func (nr *notesRouter) buildTree(baseUri string, dir string, isNote bool, patter
 				parent.subItems = append(parent.subItems, self)
 			}
 			self.absoluteUri = baseUri + strings.ToLower(uriName)
-			nr.uriNodeMap[self.absoluteUri] = self
+			snapshot.uriNodeMap[self.absoluteUri] = self
 		}
 	}
 	return nil
@@ -240,7 +268,9 @@ func (nr *notesRouter) fsNotify(path string) {
 			log.Println(err.Error())
 		}
 	} else {
-		_ = nr.rebuild()
+		if err := nr.rebuild(); err != nil {
+			log.Printf("failed to rebuild site, keeping previous snapshot: %s", err.Error())
+		}
 	}
 }
 
