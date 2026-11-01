@@ -259,6 +259,7 @@ func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, di
 				} else if conf, err := config.GetResourceConfig(self.absolutePath); err == nil && conf != nil {
 					subIsNote = false
 					if conf.Name != "" {
+						uriName = conf.Name
 						self.name = conf.Name
 					}
 				} else {

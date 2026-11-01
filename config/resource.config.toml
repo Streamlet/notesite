@@ -1,5 +1,5 @@
 # Resource Config
 
-# name of the category
+# URL prefix for files in this resource directory
 # if empty, defaults to the directory name in file system
 name = "resource_name"
