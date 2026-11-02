@@ -26,18 +26,18 @@ jobs:
 
     - name: Setup package name
       if: github.ref_type != 'tag'
-      run: echo "PACKAGE=note_is_site_${{ env.DATETIME }}_${{ env.SHA }}" >> $GITHUB_ENV
+      run: echo "PACKAGE=notesite_${{ env.DATETIME }}_${{ env.SHA }}" >> $GITHUB_ENV
 
     - name: Setup package name
       if: github.ref_type == 'tag'
-      run: echo "PACKAGE=note_is_site_${{ github.ref_name }}_${{ env.SHA }}" >> $GITHUB_ENV
+      run: echo "PACKAGE=notesite_${{ github.ref_name }}_${{ env.SHA }}" >> $GITHUB_ENV
 
     - name: Build
-      run: CGO_ENABLED=0 go build -v .
+      run: CGO_ENABLED=0 go build -v -o notesite .
 
     - name: Make package
       run: |
-        tar -zcvf ${{ env.PACKAGE }}.tar.gz NoteIsSite
+        tar -zcvf ${{ env.PACKAGE }}.tar.gz notesite
         echo ${{ env.PACKAGE }}.tar.gz > last_build
 
     - name: Upload Release on push tag

@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Streamlet/NoteIsSite/note"
+	"github.com/Streamlet/notesite/note"
 )
 
 func newRouter(noteRoot string, templateRoot string) (http.Handler, error) {

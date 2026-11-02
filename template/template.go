@@ -9,7 +9,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/Streamlet/NoteIsSite/config"
+	"github.com/Streamlet/notesite/config"
 )
 
 type Globals struct {

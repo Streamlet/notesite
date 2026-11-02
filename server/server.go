@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Streamlet/NoteIsSite/global"
+	"github.com/Streamlet/notesite/global"
 )
 
 type HttpServer interface {

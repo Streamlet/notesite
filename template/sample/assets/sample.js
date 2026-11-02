@@ -1,1 +1,1 @@
-console.log('NoteIsSite sample js')
+console.log('notesite sample js')

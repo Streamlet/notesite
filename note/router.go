@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Streamlet/NoteIsSite/config"
-	"github.com/Streamlet/NoteIsSite/note/translator"
-	"github.com/Streamlet/NoteIsSite/template"
-	"github.com/Streamlet/NoteIsSite/util"
+	"github.com/Streamlet/notesite/config"
+	"github.com/Streamlet/notesite/note/translator"
+	"github.com/Streamlet/notesite/template"
+	"github.com/Streamlet/notesite/util"
 )
 
 type Router interface {

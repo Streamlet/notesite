@@ -1,18 +1,18 @@
-![autobuild](https://github.com/StreamletStudio/NoteIsSite/workflows/autobuild/badge.svg)
+![autobuild](https://github.com/Streamlet/notesite/workflows/autobuild/badge.svg)
 
-# NoteIsSite
+# notesite
 a dynamic website system generated from notes.
 
 ## Introduction
 
 ## Build & Run
 ```bash
-go build
-./NoteIsSite --config=config/site.sample.toml
+go build -o notesite
+./notesite --config=config/site.sample.toml
 ```
 
 Then use your browser to visit <http://localhost/> .
 
 ## Demo
 
-<https://note-is-site.streamlet.org/>
+<https://notesite.streamlet.org/>

@@ -5,7 +5,7 @@ import (
 	"regexp"
 
 	"github.com/BurntSushi/toml"
-	"github.com/Streamlet/NoteIsSite/util"
+	"github.com/Streamlet/notesite/util"
 )
 
 type SiteConfig struct {

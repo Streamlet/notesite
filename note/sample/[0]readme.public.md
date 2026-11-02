@@ -21,17 +21,17 @@ Newborn blog system, like Huge, paid some attention to data source.
 But we are required to organize our notes under the rule of blog system, not as I wish.
 And it also need a publishing process, showing us these are notes, that is website.
 
-# What does NoteIsSite do?
+# What does notesite do?
 
-NoteIsSite, as it named, is actually a web server.
+notesite, as it named, is actually a web server.
 
 We could write notes in our own folder structure,
 and tell the web server where our notes locates, and which notes to show public through simple configuration.
 
 We could develop out website separately, with as few as 3 template pages.
-And tell NoteIsSite where our website locates
+And tell notesite where our website locates
 
-NoteIsSite will display our website, integrating notes seamlessly.
+notesite will display our website, integrating notes seamlessly.
 
 We cloud put our notes on a cloud disk like dropbox, google drive or OneNote,
 or put them to version control system like GitHub or GitLab, or just locally.

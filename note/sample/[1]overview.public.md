@@ -47,4 +47,4 @@ and "content.template.html" is used for note files.
 See [template](template) section for details.
 
 ### Is there a DEMO site?
-Yes. This site itself is served by NoteIsSite.
+Yes. This site itself is served by notesite.

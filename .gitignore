@@ -1,3 +1,4 @@
 .*
-/NoteIsSite
-/NoteIsSite.exe
+*.log
+/notesite
+/notesite.exe

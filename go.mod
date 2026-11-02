@@ -1,4 +1,4 @@
-module github.com/Streamlet/NoteIsSite
+module github.com/Streamlet/notesite
 
 go 1.13
 

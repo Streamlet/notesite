@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Streamlet/NoteIsSite/util"
+	"github.com/Streamlet/notesite/util"
 	"github.com/fsnotify/fsnotify"
 )
 

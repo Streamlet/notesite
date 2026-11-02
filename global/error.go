@@ -1,6 +1,6 @@
 package global
 
-import "github.com/Streamlet/NoteIsSite/util"
+import "github.com/Streamlet/notesite/util"
 
 var errorChan chan error
 
