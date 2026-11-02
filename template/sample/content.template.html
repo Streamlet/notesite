@@ -1,55 +1,45 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-	<meta charset="utf-8">
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<link href="/sample.css" rel="stylesheet" />
-	<script type="text/javascript" src="/sample.js"></script>
-	<title>{{ .Name }} - notesite sample content</title>
+	<!--#include file="partials/head.html" -->
 </head>
 
 <body>
-
-	<div>
-		{{ range .Root.Children }}
-		<a href="{{ .Uri }}">{{ if .IsAncestor }}<strong>{{ end }}{{ .Name }}{{ if .IsAncestor }}</strong>{{ end
-			}}</a>&nbsp;&nbsp;
-		{{- end }}
-	</div>
-
-	<div>
-		<h1>notesite sample - {{ .Name }} </h1>
-	</div>
-	<hr />
-
-	<div>
-		Current Position:
-		<a href="/">HomePage</a>
-		{{ range .Ancestors }}
-		{{ if ne .Uri "/" }}
-		&gt;&gt; <a href="{{ .Uri }}">{{ .Name }}</a>
-		{{ end }}
-		{{- end }}
-	</div>
-	<hr />
-
-	<div class="left">
-		{{ range .Parent.Children }}
-		<a href="{{ .Uri }}">{{ if .IsAncestor }}<strong>{{ end }}{{ .Name }}{{ if .IsAncestor }}</strong>{{ end
-			}}</a><br />
-		{{- end }}
-	</div>
-
-	<div class="right content">
-		{{ .Content }}
-	</div>
-
-	<hr />
-	<div class="foot">
-		Copyright (C) {{ .CurrentYear }}. Rendered by {{.Engine}}.
-	</div>
-
+	<!--#include file="partials/header.html" -->
+	<main id="main" class="shell docs">
+		<nav class="breadcrumbs" aria-label="Breadcrumb">
+			<a href="/">Home</a>
+			{{ range .Ancestors }}{{ if ne .Uri "/" }}<span class="crumb-sep" aria-hidden="true">/</span>{{ if eq .Uri
+			$.Uri }}<span aria-current="page">{{ .Name | html }}</span>{{ else }}<a href="{{ .Uri | html }}">{{ .Name |
+				html }}</a>{{ end }}{{ end }}{{ end }}
+		</nav>
+		<div class="docs-grid{{ if eq .Parent.Uri " /" }} docs-grid-single{{ end }}">
+			{{ if ne .Parent.Uri "/" }}
+			<aside class="docs-sidebar">
+				<p class="sidebar-title">{{ .Parent.Name | html }}</p>
+				<nav aria-label="Section">
+					{{ range .Parent.Children }}
+					<a href="{{ .Uri | html }}" {{ if eq .Uri $.Uri }} aria-current="page" {{ end }}{{ if .IsAncestor }}
+						class="is-active" {{ end }}>{{ .Name | html }}</a>
+					{{ end }}
+				</nav>
+			</aside>
+			{{ end }}
+			<article class="doc content">
+				{{ .Content }}
+				{{ if ne .Parent.Uri "/" }}
+				<nav class="page-nav" aria-label="Previous and next pages">
+					{{ with .Prev }}<a class="page-nav-link prev" href="{{ .Uri | html }}"><span>Previous</span>{{ .Name
+						| html }}</a>{{ end }}
+					{{ with .Next }}<a class="page-nav-link next" href="{{ .Uri | html }}"><span>Next</span>{{ .Name |
+						html }}</a>{{ end }}
+				</nav>
+				{{ end }}
+			</article>
+		</div>
+	</main>
+	<!--#include file="partials/footer.html" -->
 </body>
 
 </html>

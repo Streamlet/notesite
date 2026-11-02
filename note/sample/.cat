@@ -1,1 +1,1 @@
-index = "[0]readme.public.md"
+# The home page is rendered by index.template.html.

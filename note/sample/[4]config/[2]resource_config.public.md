@@ -1,9 +1,0 @@
-# Resource Config
-
-```toml
-# Resource Config
-
-# name of the category
-# if empty, defaults to the directory name in file system
-name = "resource_name"
-```

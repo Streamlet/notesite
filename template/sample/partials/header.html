@@ -1,0 +1,20 @@
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+	<div class="shell header-inner">
+		<a class="brand{{ if eq .Uri " /" }} is-active{{ end }}" href="/" {{ if eq .Uri "/" }} aria-current="page" {{
+			end }}>
+			<img src="/images/logo.png" alt="" width="28" height="28">
+			<span>notesite</span>
+		</a>
+		<nav class="site-nav" aria-label="Primary">
+			{{ range .Root.Children }}
+			<a href="{{ .Uri | html }}" {{ if eq .Uri $.Uri }} aria-current="page" {{ end }}{{ if .IsAncestor }}
+				class="is-active" {{ end }}>{{ .Name | html }}</a>
+			{{ end }}
+			<a class="nav-external" href="https://github.com/Streamlet/notesite" rel="noopener"
+				target="_blank">GitHub<span aria-hidden="true">↗</span></a>
+			<a class="nav-external" href="https://streamsoft.net" rel="noopener" target="_blank">StreamSoft<span
+					aria-hidden="true">↗</span></a>
+		</nav>
+	</div>
+</header>

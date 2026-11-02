@@ -1,0 +1,9 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>{{ if .Name }}{{ if ne .Parent.Uri "/" }}{{ .Name | html }} · {{ .Parent.Name | html }} · notesite{{ else }}{{
+    .Name | html }} · notesite{{ end }}{{ else }}notesite — Your notes, served as a website{{ end }}</title>
+<meta name="description" content="notesite turns a folder of Markdown notes into a fast, navigable website.">
+<meta name="theme-color" content="#2563eb">
+<link rel="stylesheet" href="/site.css">
+<script src="/site.js" defer></script>

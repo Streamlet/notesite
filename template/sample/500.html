@@ -1,17 +1,31 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
-	<title>500 Internal Server Error</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="color-scheme" content="light">
+	<meta name="robots" content="noindex">
+	<title>500 · notesite</title>
+	<meta name="theme-color" content="#2563eb">
+	<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+	<link rel="stylesheet" href="/site.css">
 </head>
 
 <body>
-
-	<center>
-		<h1>500 Internal Server Error</h1>
-	</center>
-	<hr>
-	<center>{{.Engine}}</center>
-
+	<main id="main" class="error-page">
+		<div class="error-card">
+			<a class="brand" href="/">
+				<img src="/images/logo.png" alt="" width="28" height="28">
+				<span>notesite</span>
+			</a>
+			<p class="eyebrow">500</p>
+			<h1>Something went wrong</h1>
+			<p>The server could not render this page. Check the server logs for details.</p>
+			<a class="button primary" href="/">Back to home</a>
+		</div>
+	</main>
+	<!--#include file="partials/footer.html" -->
 </body>
 
 </html>

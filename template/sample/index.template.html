@@ -1,48 +1,133 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-	<meta charset="utf-8">
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<link href="/sample.css" rel="stylesheet" />
-	<script type="text/javascript" src="/sample.js"></script>
-	<title>notesite sample</title>
+	<!--#include file="partials/head.html" -->
 </head>
 
 <body>
+	<!--#include file="partials/header.html" -->
+	<main id="main">
+		<section class="hero shell">
+			<div class="hero-copy">
+				<p class="eyebrow">A folder-first website engine</p>
+				<h1>Your notes, <span>served as a website.</span></h1>
+				<p class="lede">notesite turns a folder of Markdown notes into a fast, navigable site. No database, no
+					publish step, no content lock-in.</p>
+				<div class="actions">
+					<a class="button primary" href="/guide/">Get started</a>
+					<a class="button secondary" href="https://github.com/Streamlet/notesite" rel="noopener">View on
+						GitHub</a>
+				</div>
+				<p class="meta">MIT licensed · single binary · live reload</p>
+			</div>
+			<div class="hero-visual" aria-hidden="true">
+				<div class="window file-window">
+					<div class="window-bar"><span></span><span></span><span></span></div>
+					<pre class="tree">notes/
+├── [0]Start.public.md
+├── [1]Notes.public.md
+├── Guide/
+│   └── .cat
+└── images/
+    └── logo.png</pre>
+				</div>
+				<div class="visual-arrow">→</div>
+				<div class="window page-window">
+					<div class="window-bar"><span></span><span></span><span></span></div>
+					<div class="preview-body">
+						<p class="preview-kicker">Guide</p>
+						<h2>Getting started</h2>
+						<p>Build the binary, point it at your notes, and open the site.</p>
+						<div class="preview-lines"><span></span><span></span><span></span></div>
+					</div>
+				</div>
+			</div>
+		</section>
 
-	<div>
-		{{ range .Children }}
-		<a href="{{ .Uri }}">{{ .Name }}</a>&nbsp;&nbsp;
-		{{- end }}
-	</div>
+		<section class="section shell" aria-labelledby="features-title">
+			<div class="section-heading">
+				<p class="eyebrow">Why notesite</p>
+				<h2 id="features-title">Notes stay notes. The site comes from them.</h2>
+			</div>
+			<div class="feature-grid">
+				<article class="feature">
+					<h3>Your files, your format</h3>
+					<p>Markdown, text, or HTML in ordinary folders. No database, no import, no export.</p>
+				</article>
+				<article class="feature">
+					<h3>Three page templates</h3>
+					<p>Index, category, and content. Customize the HTML and CSS, or start from the sample.</p>
+				</article>
+				<article class="feature">
+					<h3>Live reload</h3>
+					<p>Save a note or a template and refresh. The server picks up the change without a rebuild.</p>
+				</article>
+				<article class="feature">
+					<h3>Categories and resources</h3>
+					<p>Folders become navigation. Static assets live beside your notes and are served directly.</p>
+				</article>
+			</div>
+		</section>
 
-	<div>
-		<h1>notesite sample</h1>
-	</div>
-	<hr />
+		<section class="section shell" aria-labelledby="steps-title">
+			<div class="section-heading">
+				<p class="eyebrow">How it works</p>
+				<h2 id="steps-title">From folder to site in three steps.</h2>
+			</div>
+			<ol class="step-grid">
+				<li>
+					<span class="step-number">01</span>
+					<h3>Write notes</h3>
+					<p>Use Markdown in folders. Add a <code>.cat</code> file to turn a folder into a category.</p>
+				</li>
+				<li>
+					<span class="step-number">02</span>
+					<h3>Point the config</h3>
+					<p>Set <code>note_root</code> and <code>template_root</code> in <code>site.toml</code>.</p>
+				</li>
+				<li>
+					<span class="step-number">03</span>
+					<h3>Run the binary</h3>
+					<p>Start notesite. The directory tree becomes the site; edits keep flowing.</p>
+				</li>
+			</ol>
+		</section>
 
-	{{ if .HasChildren }}
-	<div class="left">
-		{{ range .Children }}
-		<a href="{{ .Uri }}">{{ .Name }}</a><br />
-		{{- end }}
-	</div>
-	{{ end }}
+		<section class="section shell quickstart" aria-labelledby="quickstart-title">
+			<div class="quickstart-copy">
+				<p class="eyebrow">Quick start</p>
+				<h2 id="quickstart-title">Run it in a minute.</h2>
+				<p>Build with the version stamped in, then point the binary at the sample config.</p>
+			</div>
+			<pre><code>VERSION=$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo dev)
+go build -o notesite -ldflags "-X github.com/Streamlet/notesite/global.Version=$VERSION" .
+./notesite --config=config/site.sample.toml</code></pre>
+		</section>
 
-	<div class="{{ if .HasChildren }}right{{ end }} content">
-		{{ if eq .Content ""}}
-		<h2>Empty:)</h2>
-		{{ else }}
-		{{ .Content }}
-		{{ end }}
-	</div>
+		<section class="section shell" aria-labelledby="docs-title">
+			<div class="section-heading">
+				<p class="eyebrow">Documentation</p>
+				<h2 id="docs-title">Read the manual.</h2>
+			</div>
+			<div class="card-grid">
+				{{ range .Children }}
+				<a class="doc-card" href="{{ .Uri | html }}">
+					<h3>{{ .Name | html }}</h3>
+					<p>{{ if eq .Name "Guide" }}Build, configure, and deploy notesite.{{ else if eq .Name "Reference"
+						}}Template data and configuration fields.{{ else }}Why notesite exists, plus project links.{{
+						end }}</p>
+					<span class="card-arrow" aria-hidden="true">Read →</span>
+				</a>
+				{{ end }}
+			</div>
+		</section>
 
-	<hr />
-	<div class="foot">
-		Copyright (C) {{ .CurrentYear }}. Rendered by {{.Engine}}.
-	</div>
-
+		{{ if .Content }}<section class="section shell">
+			<div class="doc">{{ .Content }}</div>
+		</section>{{ end }}
+	</main>
+	<!--#include file="partials/footer.html" -->
 </body>
 
 </html>
