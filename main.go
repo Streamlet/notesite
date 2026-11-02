@@ -3,23 +3,31 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/Streamlet/notesite/config"
 	"github.com/Streamlet/notesite/global"
 	"github.com/Streamlet/notesite/server"
 	"github.com/Streamlet/notesite/util"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 type commandLineArgs struct {
-	config string
+	config  string
+	version bool
 }
 
 func main() {
 	var args commandLineArgs
 	flag.StringVar(&args.config, "config", "site.toml", "config file path")
+	flag.BoolVar(&args.version, "version", false, "print version and exit")
 	flag.Parse()
+
+	if args.version {
+		fmt.Println(global.ProductName + " " + global.Version)
+		return
+	}
 
 	err := config.LoadSiteConfig(args.config)
 	if err != nil {

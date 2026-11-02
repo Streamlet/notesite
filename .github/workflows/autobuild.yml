@@ -17,6 +17,8 @@ jobs:
 
     - name: Check out code
       uses: actions/checkout@v4.2.2
+      with:
+        fetch-depth: 0
 
     - name: Shorten SHA
       uses: benjlevesque/short-sha@v3.0
@@ -33,7 +35,9 @@ jobs:
       run: echo "PACKAGE=notesite_${{ github.ref_name }}_${{ env.SHA }}" >> $GITHUB_ENV
 
     - name: Build
-      run: CGO_ENABLED=0 go build -v -o notesite .
+      run: |
+        VERSION=$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo dev)
+        CGO_ENABLED=0 go build -v -o notesite -ldflags "-X github.com/Streamlet/notesite/global.Version=$VERSION" .
 
     - name: Make package
       run: |

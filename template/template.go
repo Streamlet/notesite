@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Streamlet/notesite/config"
+	"github.com/Streamlet/notesite/global"
 )
 
 type Globals struct {
@@ -17,6 +18,11 @@ type Globals struct {
 
 func (Globals) CurrentYear() string {
 	return time.Now().Format("2006")
+}
+
+// Engine is the product name and version, for example notesite/0.7.
+func (Globals) Engine() string {
+	return global.ProductName + "/" + global.Version
 }
 
 type BasicItem struct {
@@ -143,6 +149,21 @@ func readFileWithSsi(root string, name string, seen map[string]bool) ([]byte, er
 	return out.Bytes(), nil
 }
 
+func renderErrorPage(content []byte) ([]byte, error) {
+	if len(content) == 0 {
+		return content, nil
+	}
+	tmpl, err := template.New("").Parse(string(content))
+	if err != nil {
+		return nil, err
+	}
+	var buffer bytes.Buffer
+	if err := tmpl.Execute(&buffer, Globals{}); err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
 type templateData struct {
 	lock             sync.RWMutex
 	indexTemplate    *template.Template
@@ -171,8 +192,16 @@ func (td *templateData) Update(templateRoot string) error {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
+	err404, err = renderErrorPage(err404)
+	if err != nil {
+		return err
+	}
 	err500, err := readFileWithSsi(templateRoot, c.ErrorPage500, nil)
 	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	err500, err = renderErrorPage(err500)
+	if err != nil {
 		return err
 	}
 

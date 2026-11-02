@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -10,37 +11,37 @@
 
 <body>
 
-<div>
-	{{ range .Children }}
-		<a href="{{ .Uri }}" >{{ .Name }}</a>&nbsp;&nbsp;
-	{{- end }}
-</div>
-
-<div>
-	<h1>notesite sample</h1>
-</div>
-<hr />
-
-{{ if .HasChildren }}
-	<div class="left">
+	<div>
 		{{ range .Children }}
-			<a href="{{ .Uri }}" >{{ .Name }}</a><br />
+		<a href="{{ .Uri }}">{{ .Name }}</a>&nbsp;&nbsp;
 		{{- end }}
 	</div>
-{{ end }}
 
-<div  class="{{ if .HasChildren }}right{{ end }} content">
-	{{ if eq .Content ""}}
-		<h2>Empty:)</h2>
-	{{ else }}
-	{{ .Content }}
+	<div>
+		<h1>notesite sample</h1>
+	</div>
+	<hr />
+
+	{{ if .HasChildren }}
+	<div class="left">
+		{{ range .Children }}
+		<a href="{{ .Uri }}">{{ .Name }}</a><br />
+		{{- end }}
+	</div>
 	{{ end }}
-</div>
 
-<hr />
-<div class="foot">
-	Copyright (C) {{ .CurrentYear }}. Powered By Streamlet Studio.
-</div>
+	<div class="{{ if .HasChildren }}right{{ end }} content">
+		{{ if eq .Content ""}}
+		<h2>Empty:)</h2>
+		{{ else }}
+		{{ .Content }}
+		{{ end }}
+	</div>
+
+	<hr />
+	<div class="foot">
+		Copyright (C) {{ .CurrentYear }}. Rendered by {{.Engine}}.
+	</div>
 
 </body>
 

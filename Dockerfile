@@ -1,10 +1,11 @@
-FROM golang:1.17-alpine AS build
+FROM golang:1.18-alpine AS build
 # go build
 ENV BUILD_DIR=/tmp/build
 RUN mkdir -p ${BUILD_DIR}
 COPY ./ ${BUILD_DIR}
+RUN apk add --no-cache git
 ENV GOPROXY=https://goproxy.cn,direct
-RUN cd ${BUILD_DIR} && GOOS=linux GOARCH=amd64 go build -o notesite -ldflags='-s -w'
+RUN cd ${BUILD_DIR} && GOOS=linux GOARCH=amd64 go build -o notesite -ldflags "-s -w -X github.com/Streamlet/notesite/global.Version=$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo dev)"
 # organize directories
 ENV INSTALL_DIR=/usr/local/notesite
 RUN mkdir -p ${INSTALL_DIR}

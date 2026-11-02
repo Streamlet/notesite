@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -11,48 +12,49 @@
 <body>
 
 
-<div>
-	{{ range .Root.Children }}
-		<a href="{{ .Uri }}" >{{ if .IsAncestor }}<strong>{{ end }}{{ .Name }}{{ if .IsAncestor }}</strong>{{ end }}</a>&nbsp;&nbsp;
-	{{- end }}
-</div>
+	<div>
+		{{ range .Root.Children }}
+		<a href="{{ .Uri }}">{{ if .IsAncestor }}<strong>{{ end }}{{ .Name }}{{ if .IsAncestor }}</strong>{{ end
+			}}</a>&nbsp;&nbsp;
+		{{- end }}
+	</div>
 
-<div>
-	<h1>notesite sample - {{ .Name }} </h1>
-</div>
-<hr />
+	<div>
+		<h1>notesite sample - {{ .Name }} </h1>
+	</div>
+	<hr />
 
-<div>
-	Current Position:
-	<a href="/" >HomePage</a>
-	{{ range .Ancestors }}
+	<div>
+		Current Position:
+		<a href="/">HomePage</a>
+		{{ range .Ancestors }}
 		{{ if ne .Uri "/" }}
-	&gt;&gt; <a href="{{ .Uri }}" >{{ .Name }}</a>
+		&gt;&gt; <a href="{{ .Uri }}">{{ .Name }}</a>
 		{{ end }}
-	{{- end }}
-</div>
-<hr />
+		{{- end }}
+	</div>
+	<hr />
 
-{{ if .HasChildren }}
-<div class="left">
-	{{ range .Children }}
-		<a href="{{ .Uri }}" >{{ .Name }}</a><br />
-	{{- end }}
-</div>
-{{ end }}
-
-<div  class="{{ if .HasChildren }}right{{ end }} content">
-	{{ if eq .Content ""}}
-		<h2>Empty:)</h2>
-	{{ else }}
-		{{ .Content }}
+	{{ if .HasChildren }}
+	<div class="left">
+		{{ range .Children }}
+		<a href="{{ .Uri }}">{{ .Name }}</a><br />
+		{{- end }}
+	</div>
 	{{ end }}
-</div>
 
-<hr />
-<div class="foot">
-	Copyright (C) {{ .CurrentYear }}. Powered By Streamlet Studio.
-</div>
+	<div class="{{ if .HasChildren }}right{{ end }} content">
+		{{ if eq .Content ""}}
+		<h2>Empty:)</h2>
+		{{ else }}
+		{{ .Content }}
+		{{ end }}
+	</div>
+
+	<hr />
+	<div class="foot">
+		Copyright (C) {{ .CurrentYear }}. Rendered by {{.Engine}}.
+	</div>
 
 </body>
 
