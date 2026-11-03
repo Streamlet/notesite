@@ -19,7 +19,7 @@ content_template = "content.template.html"
 note_root = "note/sample"
 category_config_file = ".cat"
 resource_config_file = ".res"
-note_file_pattern = "^(?:\\[.*?\\])*(.*)\\.public\\.(?:txt|html|md)$"
+note_file_pattern = "^(?:\\[.*?\\])(.*)\\.(?:txt|html|md)$"
 ```
 
 ## `[server]`
@@ -50,7 +50,7 @@ Place a `.cat` file in a directory to make it a category:
 ```toml
 name = "guide"
 display_name = "Guide"
-index = "[0]index.md"
+index = "index.md"
 # note_file_pattern = "..."
 ```
 

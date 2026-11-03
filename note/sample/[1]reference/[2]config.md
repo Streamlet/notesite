@@ -41,10 +41,10 @@ Resource trees are served as static files and are not added to navigation.
 
 Capture group 1 becomes the URL segment and display name. Capture group 2, when present, overrides the display name. A group-1 value ending in `.` produces a directory-style URL with a trailing `/`. Generated URLs are lowercased.
 
-The default pattern:
+The sample config uses:
 
 ```toml
-note_file_pattern = "^(?:\\[.*?\\])*(.*)\\.public\\.(?:txt|html|md)$"
+note_file_pattern = "^(?:\\[.*?\\])(.*)\\.(?:txt|html|md)$"
 ```
 
 ## Static directories

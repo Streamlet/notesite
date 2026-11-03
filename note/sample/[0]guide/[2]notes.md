@@ -4,21 +4,21 @@ notesite maps the note folder tree directly to URLs. There is no database and no
 
 ## Public files
 
-The default pattern is:
+The sample config uses:
 
 ```toml
-note_file_pattern = "^(?:\\[.*?\\])*(.*)\\.public\\.(?:txt|html|md)$"
+note_file_pattern = "^(?:\\[.*?\\])(.*)\\.(?:txt|html|md)$"
 ```
 
-Only matching files are routed. Leading `[0]`, `[1]` groups are ignored for the name and exist only to control lexical order. The captured name becomes both the display label and the URL segment; the router lowercases URLs.
+Only matching files are routed. In this pattern the leading `[0]`-style group is a non-capturing prefix: it controls lexical order and is left out of the URL. For example, `[1]Notes.md` is served at `/notes`. The captured name becomes both the display label and the URL segment; the router lowercases URLs.
 
 | File | URL | Label |
 | --- | --- | --- |
-| `[0]Start.public.md` | `/start` | Start |
-| `[1]Notes.public.md` in a category with `name = "guide"` | `/guide/notes` | Notes |
-| `[2]About.public.md` at the root | `/about` | About |
+| `[0]Start.md` | `/start` | Start |
+| `[1]Notes.md` in a category with `name = "guide"` | `/guide/notes` | Notes |
+| `[2]About.md` at the root | `/about` | About |
 
-Use zero-padded prefixes (`[00]`, `[01]`) when a directory has more than nine items: ordering is lexical, not numeric.
+Prefixes sort lexically, not numerically: use zero-padded forms such as `[00]`, `[01]` when a directory has more than nine items.
 
 ## Categories
 
@@ -27,13 +27,13 @@ A subdirectory becomes a category only when it contains the configured category 
 ```toml
 name = "guide"
 display_name = "Guide"
-index = "[0]Start.public.md"
+index = "index.md"
 # note_file_pattern = "..."
 ```
 
 - `name` sets the URL segment and the fallback label.
 - `display_name` overrides the label used in navigation.
-- `index` supplies the content for the category page. If the index file also matches the public pattern, it remains reachable as a normal content page; the index files in this sample do not match, so they only serve the category page.
+- `index` supplies the content for the category page. The index file is an ordinary file in the category; if its name also matches `note_file_pattern`, it is routed as a content page and appears in navigation too. The index files in this sample have no `[...]` prefix, so they only serve the category page.
 - `note_file_pattern` overrides the site pattern for that category and its descendants.
 
 The root directory is always the site root. Its `.cat` can set `index` and `note_file_pattern`; `name` and `display_name` are ignored there.

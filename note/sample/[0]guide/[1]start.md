@@ -12,11 +12,10 @@ notesite serves a folder of Markdown notes as a website. Point it at a notes dir
 ```bash
 git clone https://github.com/Streamlet/notesite.git
 cd notesite
-VERSION=$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo dev)
-go build -o notesite -ldflags "-X github.com/Streamlet/notesite/global.Version=$VERSION" .
+go build .
 ```
 
-`VERSION` is the exact tag at HEAD, or the short commit id when HEAD is not tagged. Without the linker flag the binary reports `dev`.
+`VERSION` is the exact tag at HEAD, or the short commit id when HEAD is not tagged. Without the linker flag the binary reports `v0.0`.
 
 ## Run
 
@@ -43,11 +42,11 @@ The sample config points at `note/sample` and `template/sample`, so the command 
 ```text
 notes/
   .cat
-  [0]Start.public.md
-  Guide/
+  [0]start.md
+  guide/
     .cat
-    [0]index.md
-    [1]Notes.public.md
+    index.md
+    [1]notes.md
 templates/
   index.template.html
   category.template.html
@@ -55,7 +54,7 @@ templates/
   assets/site.css
 ```
 
-A subdirectory becomes a category only when it contains `.cat`. By default, note files must end in `.public.md`, `.public.txt`, or `.public.html`; the `[0]` prefix only controls ordering and is not part of the URL.
+A subdirectory becomes a category only when it contains `.cat`. `note_file_pattern` in `site.toml` selects which note files are public. The sample pattern uses a `[0]`-style prefix to control ordering: for example, `[1]notes.md` is served at `/notes`, with the prefix left out of the URL.
 
 ## Next steps
 
