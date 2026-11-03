@@ -2,8 +2,8 @@ name: autobuild
 
 on:
   push:
-  release:
-    types: published
+    tags:
+      - 'v*'
 
 jobs:
 
@@ -43,14 +43,6 @@ jobs:
       run: |
         tar -zcvf ${{ env.PACKAGE }}.tar.gz notesite
         echo ${{ env.PACKAGE }}.tar.gz > last_build
-
-    - name: Upload Release on push tag
-      if: github.ref_type == 'tag'
-      uses: JasonEtco/upload-to-release@master
-      with:
-        args: ${{ env.PACKAGE }}.tar.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload to oss
       uses: tvrcgo/oss-action@v1.0.0
