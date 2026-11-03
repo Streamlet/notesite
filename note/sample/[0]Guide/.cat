@@ -1,0 +1,3 @@
+name = "guide"
+display_name = "Guide"
+index = "[0]index.md"
