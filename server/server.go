@@ -83,6 +83,9 @@ func (s *sockServer) Serve() error {
 	if err != nil {
 		return err
 	}
+	if err := os.Chmod(s.sock, 0666); err != nil {
+		return err
+	}
 	serve(&s.Server, l)
 	return nil
 }
