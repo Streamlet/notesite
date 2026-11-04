@@ -100,8 +100,7 @@
 				<h2 id="quickstart-title">Run it in a minute.</h2>
 				<p>Build with the version stamped in, then point the binary at the sample config.</p>
 			</div>
-			<pre><code>VERSION=$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo dev)
-go build -o notesite -ldflags "-X github.com/Streamlet/notesite/global.Version=$VERSION" .
+			<pre><code>go build .
 ./notesite --config=config/site.sample.toml</code></pre>
 		</section>
 
