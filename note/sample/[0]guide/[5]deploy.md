@@ -8,7 +8,7 @@ CGO_ENABLED=0 go build -trimpath -o notesite \
   -ldflags "-s -w -X github.com/Streamlet/notesite/global.Version=$VERSION" .
 ```
 
-`-s -w` strips debug data; the injected version is still available through `--version` and the template `.Engine`.
+`-ldflags -X` injects the version into `global.Version` at link time; without it the binary reports `latest`. `-s -w` strips debug data; the injected version is still available through `--version` and the template `.Engine`.
 
 ## Docker
 
@@ -58,7 +58,7 @@ Everything that matches the public note pattern, and every file inside a resourc
 
 ## Versioning
 
-`--version` prints the injected version. The CI workflow uses the same tag-or-commit rule and packages the `notesite` binary.
+`global.Version` defaults to `latest`. A release build overrides it with the linker flag shown above, using the exact tag at HEAD or the short commit id when HEAD is not tagged. The CI workflow applies the same rule and packages the `notesite` binary. `--version` prints the value; templates receive it as `.Engine`, for example `notesite/v0.7`.
 
 ## Updates
 

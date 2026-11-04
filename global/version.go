@@ -6,5 +6,5 @@ package global
 
 var (
 	ProductName = "notesite"
-	Version     = "v0.0"
+	Version     = "latest"
 )

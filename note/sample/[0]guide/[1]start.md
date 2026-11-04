@@ -5,7 +5,6 @@ notesite serves a folder of Markdown notes as a website. Point it at a notes dir
 ## Requirements
 
 - Go 1.18 or newer
-- Git, optional and only used to stamp the version
 
 ## Build
 
@@ -14,8 +13,6 @@ git clone https://github.com/Streamlet/notesite.git
 cd notesite
 go build .
 ```
-
-`VERSION` is the exact tag at HEAD, or the short commit id when HEAD is not tagged. Without the linker flag the binary reports `v0.0`.
 
 ## Run
 
@@ -34,8 +31,6 @@ The sample config points at `note/sample` and `template/sample`, so the command 
 - Renders pages with the three templates in `template_root`.
 - Serves static assets and resource directories directly.
 - Watches notes and templates and reloads them without a restart.
-
-`./notesite --version` prints the injected version.
 
 ## A minimal site
 
