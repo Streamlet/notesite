@@ -16,4 +16,4 @@ Then use your browser to visit <http://localhost/> .
 
 ## Demo
 
-<https://notesite.streamlet.org/>
+<https://notesite.streamsoft.net/>
