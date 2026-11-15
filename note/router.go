@@ -67,8 +67,9 @@ type node struct {
 	basicItem        *template.BasicItem
 
 	// dir node only
-	subItems []*node
-	index    string
+	subItems   []*node
+	index      string
+	descending bool
 }
 
 func NewRouter(noteRoot string, templateRoot string) (Router, error) {
@@ -228,6 +229,7 @@ func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, di
 		parent.absolutePath = dir
 		parent.absoluteUri = baseUri
 		if conf, err := config.GetCategoryConfig(parent.absolutePath); err == nil && conf != nil {
+			parent.descending = conf.Descending
 			if conf.Index != "" {
 				parent.index = conf.Index
 			}
@@ -238,6 +240,7 @@ func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, di
 		parent.subItems = make([]*node, 0)
 		uriNodeMap[parent.absoluteUri] = parent
 	}
+	orderFileEntries(files, parent.descending)
 	for _, f := range files {
 		self := new(node)
 		self.isNote = isNote
@@ -259,6 +262,7 @@ func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, di
 			if isNote {
 				if conf, err := config.GetCategoryConfig(self.absolutePath); err == nil && conf != nil {
 					subIsNote = true
+					self.descending = conf.Descending
 					if conf.Name != "" {
 						uriName = conf.Name
 						self.name = conf.Name
@@ -323,6 +327,18 @@ func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, di
 		}
 	}
 	return nil
+}
+
+// orderFileEntries applies a category's descending flag to its raw directory
+// entries. Directory entries are sorted by file name by os.ReadDir, so
+// descending reverses that order.
+func orderFileEntries(entries []os.DirEntry, descending bool) {
+	if !descending {
+		return
+	}
+	for i, j := 0, len(entries)-1; i < j; i, j = i+1, j-1 {
+		entries[i], entries[j] = entries[j], entries[i]
+	}
 }
 
 func (nr *notesRouter) FileCreated(path string) {

@@ -10,6 +10,7 @@ type CategoryConfig struct {
 	DisplayName     string `toml:"display_name"`
 	Name            string `toml:"name"`
 	Index           string `toml:"index"`
+	Descending      bool   `toml:"descending"`
 	NoteFilePattern string `toml:"note_file_pattern"`
 	NoteFileRegExp  *regexp.Regexp
 }

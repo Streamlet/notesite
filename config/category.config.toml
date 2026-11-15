@@ -12,5 +12,9 @@ name = "category_name"
 # the content of index file fills {{ .Content }} of the index template or category template
 index = "index.md"
 
+# sort the category's children by file name in descending order
+# false (default) uses ascending file name order
+descending = false
+
 # overrides note_file_pattern in site_config.toml
 note_file_pattern = "^(?:\\[.*?\\])*(.*)\\.public\\.(?:txt|html|md)$"

@@ -12,10 +12,10 @@ func TestInjectMathAssets(t *testing.T) {
 	t.Run("math page", func(t *testing.T) {
 		got := string(injectMathAssets([]byte(mathPage)))
 		for _, want := range []string{
-			`href="` + katexAssetBase + `katex.min.css?v=`,
-			`href="` + katexAssetBase + `math.css?v=`,
-			`src="` + katexAssetBase + `katex.min.js?v=`,
-			`src="` + katexAssetBase + `math.js?v=`,
+			`href="` + katexAssetBase + `katex.min.css">`,
+			`href="` + katexAssetBase + `math.css">`,
+			`src="` + katexAssetBase + `katex.min.js">`,
+			`src="` + katexAssetBase + `math.js">`,
 		} {
 			if !strings.Contains(got, want) {
 				t.Errorf("injected page should contain %q:\n%s", want, got)
