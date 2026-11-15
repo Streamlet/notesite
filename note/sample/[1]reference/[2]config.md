@@ -25,7 +25,7 @@
 | `name` | URL segment and fallback label |
 | `display_name` | Navigation label; overrides `name` |
 | `index` | File whose translated HTML fills the category page |
-| `descending` | Sort children by file name in descending order; default `false` |
+| `descending` | Descending child order; unset inherits, `false` forces ascending |
 | `note_file_pattern` | Pattern override for this category and its descendants |
 
 A subdirectory is a category only if it contains the configured marker. The root is always the root; its `name` and `display_name` are ignored.

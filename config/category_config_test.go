@@ -7,23 +7,31 @@ import (
 )
 
 func TestCategoryConfigDescending(t *testing.T) {
+	trueValue := true
+	falseValue := false
 	tests := []struct {
+		name  string
 		input string
-		want  bool
+		want  *bool
 	}{
-		{input: "", want: false},
-		{input: "descending = true", want: true},
-		{input: "descending = false", want: false},
+		{name: "unset", input: "", want: nil},
+		{name: "true", input: "descending = true", want: &trueValue},
+		{name: "false", input: "descending = false", want: &falseValue},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			var conf CategoryConfig
 			if _, err := toml.Decode(tt.input, &conf); err != nil {
 				t.Fatal(err)
 			}
-			if conf.Descending != tt.want {
-				t.Errorf("Descending = %v, want %v", conf.Descending, tt.want)
+			switch {
+			case tt.want == nil && conf.Descending != nil:
+				t.Fatalf("Descending = %v, want nil", *conf.Descending)
+			case tt.want != nil && conf.Descending == nil:
+				t.Fatalf("Descending = nil, want %v", *tt.want)
+			case tt.want != nil && *conf.Descending != *tt.want:
+				t.Fatalf("Descending = %v, want %v", *conf.Descending, *tt.want)
 			}
 		})
 	}

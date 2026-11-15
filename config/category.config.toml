@@ -13,8 +13,9 @@ name = "category_name"
 index = "index.md"
 
 # sort the category's children by file name in descending order
-# false (default) uses ascending file name order
-descending = false
+# unset inherits from the parent category
+# false explicitly forces ascending order
+# descending = true
 
 # overrides note_file_pattern in site_config.toml
 note_file_pattern = "^(?:\\[.*?\\])*(.*)\\.public\\.(?:txt|html|md)$"

@@ -28,14 +28,14 @@ A subdirectory becomes a category only when it contains the configured category 
 name = "guide"
 display_name = "Guide"
 index = "index.md"
-descending = false
+# descending = true
 # note_file_pattern = "..."
 ```
 
 - `name` sets the URL segment and the fallback label.
 - `display_name` overrides the label used in navigation.
 - `index` supplies the content for the category page. The index file is an ordinary file in the category; if its name also matches `note_file_pattern`, it is routed as a content page and appears in navigation too. The index files in this sample have no `[...]` prefix, so they only serve the category page.
-- `descending` reverses the file-name order of this category's files and subcategories. It defaults to `false` (ascending); the `[N]` prefixes define the ascending order.
+- `descending` reverses the file-name order of this category's files and subcategories. When unset, it inherits from the parent category; `false` explicitly forces ascending order. The `[N]` prefixes define the ascending order.
 - `note_file_pattern` overrides the site pattern for that category and its descendants.
 
 The root directory is always the site root. Its `.cat` can set `index` and `note_file_pattern`; `name` and `display_name` are ignored there.

@@ -67,9 +67,8 @@ type node struct {
 	basicItem        *template.BasicItem
 
 	// dir node only
-	subItems   []*node
-	index      string
-	descending bool
+	subItems []*node
+	index    string
 }
 
 func NewRouter(noteRoot string, templateRoot string) (Router, error) {
@@ -163,11 +162,11 @@ func (nr *notesRouter) rebuild() error {
 func (nr *notesRouter) buildSnapshot() (map[string]*node, error) {
 	uriNodeMap := make(map[string]*node)
 	for _, dir := range config.GetSiteConfig().Template.StaticDirs {
-		if err := nr.buildTree(uriNodeMap, "/", filepath.Join(nr.templateRoot, dir), false, nil, nil, nil); err != nil {
+		if err := nr.buildTree(uriNodeMap, "/", filepath.Join(nr.templateRoot, dir), false, nil, nil, nil, false); err != nil {
 			return nil, err
 		}
 	}
-	if err := nr.buildTree(uriNodeMap, "/", nr.noteRoot, true, config.GetSiteConfig().Note.NoteFileRegExp, nil, nil); err != nil {
+	if err := nr.buildTree(uriNodeMap, "/", nr.noteRoot, true, config.GetSiteConfig().Note.NoteFileRegExp, nil, nil, false); err != nil {
 		return nil, err
 	}
 	// Build the template view once per snapshot; requests clone only the active path.
@@ -209,7 +208,7 @@ func sameFileIn(infos []os.FileInfo, target os.FileInfo) bool {
 	return false
 }
 
-func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, dir string, isNote bool, pattern *regexp.Regexp, parent *node, ancestors []os.FileInfo) error {
+func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, dir string, isNote bool, pattern *regexp.Regexp, parent *node, ancestors []os.FileInfo, descending bool) error {
 	dirInfo, err := os.Stat(dir)
 	if err != nil {
 		return err
@@ -229,7 +228,9 @@ func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, di
 		parent.absolutePath = dir
 		parent.absoluteUri = baseUri
 		if conf, err := config.GetCategoryConfig(parent.absolutePath); err == nil && conf != nil {
-			parent.descending = conf.Descending
+			if conf.Descending != nil {
+				descending = *conf.Descending
+			}
 			if conf.Index != "" {
 				parent.index = conf.Index
 			}
@@ -240,7 +241,7 @@ func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, di
 		parent.subItems = make([]*node, 0)
 		uriNodeMap[parent.absoluteUri] = parent
 	}
-	orderFileEntries(files, parent.descending)
+	orderFileEntries(files, descending)
 	for _, f := range files {
 		self := new(node)
 		self.isNote = isNote
@@ -259,10 +260,13 @@ func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, di
 			subIsNote := isNote
 			uriName := self.name
 			patternForChildren := pattern
+			childDescending := descending
 			if isNote {
 				if conf, err := config.GetCategoryConfig(self.absolutePath); err == nil && conf != nil {
 					subIsNote = true
-					self.descending = conf.Descending
+					if conf.Descending != nil {
+						childDescending = *conf.Descending
+					}
 					if conf.Name != "" {
 						uriName = conf.Name
 						self.name = conf.Name
@@ -295,7 +299,7 @@ func (nr *notesRouter) buildTree(uriNodeMap map[string]*node, baseUri string, di
 				uriNodeMap[self.absoluteUri] = self
 				parent.subItems = append(parent.subItems, self)
 			}
-			if err := nr.buildTree(uriNodeMap, self.absoluteUri, self.absolutePath, subIsNote, patternForChildren, self, ancestors); err != nil {
+			if err := nr.buildTree(uriNodeMap, self.absoluteUri, self.absolutePath, subIsNote, patternForChildren, self, ancestors, childDescending); err != nil {
 				return err
 			}
 		} else {

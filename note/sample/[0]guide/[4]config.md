@@ -51,14 +51,14 @@ Place a `.cat` file in a directory to make it a category:
 name = "guide"
 display_name = "Guide"
 index = "index.md"
-descending = false
+# descending = true
 # note_file_pattern = "..."
 ```
 
 - `name` sets the URL segment and fallback label.
 - `display_name` overrides the label.
 - `index` is the note whose translated HTML fills the category page.
-- `descending` sorts this category's children by file name in descending order; default `false`.
+- `descending` sorts this category's children by file name in descending order; unset inherits from the parent, `false` forces ascending.
 - `note_file_pattern` overrides the site pattern for this category and its descendants.
 
 ## Resource config
