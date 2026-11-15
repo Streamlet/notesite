@@ -60,6 +60,27 @@ name = "images"
 
 Raw HTML in `.html` notes is not sanitized. Treat note content as trusted.
 
+## Math
+
+Markdown notes support LaTeX math. Use `$...$` for inline math and `$$...$$` for display math; `\(...\)` and `\[...\]` also work. Code spans and code blocks are left untouched.
+
+The mass-energy equivalence $E = mc^2$ is a familiar inline example. A display formula can be written as:
+
+$$
+\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+$$
+
+Aligned equations work too:
+
+$$
+\begin{aligned}
+(a+b)^2 &= a^2 + 2ab + b^2 \\
+(a-b)^2 &= a^2 - 2ab + b^2
+\end{aligned}
+$$
+
+The engine injects KaTeX into pages that contain math. Templates do not need to include any math JavaScript, CSS, or fonts.
+
 ## Front matter
 
 Markdown notes may start with YAML (`---`) or TOML (`+++`) front matter. Only `title` and `date` are understood:

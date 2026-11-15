@@ -18,6 +18,7 @@ import (
 var markdownRenderer = goldmark.New(
 	goldmark.WithExtensions(
 		extension.GFM,
+		mathExt,
 		highlighting.NewHighlighting(
 			highlighting.WithStyle("vs"),
 			highlighting.WithFormatOptions(
