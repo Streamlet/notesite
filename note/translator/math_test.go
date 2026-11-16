@@ -72,7 +72,7 @@ func TestMath(t *testing.T) {
 		{
 			name:  "dollar at paragraph start",
 			input: "$x$\ntext\n",
-			want:  "<p><span class=\"math math-inline\">\\(x\\)</span>\ntext</p>\n",
+			want:  "<p><span class=\"math math-inline\">\\(x\\)</span><br>\ntext</p>\n",
 		},
 		{
 			name:  "backslash delimiters",

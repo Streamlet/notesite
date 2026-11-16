@@ -13,9 +13,14 @@ import (
 	"github.com/go-yaml/yaml"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
+	"github.com/yuin/goldmark/renderer/html"
 )
 
 var markdownRenderer = goldmark.New(
+	goldmark.WithRendererOptions(
+		// Render soft line breaks (a single newline) as <br>.
+		html.WithHardWraps(),
+	),
 	goldmark.WithExtensions(
 		extension.GFM,
 		mathExt,
